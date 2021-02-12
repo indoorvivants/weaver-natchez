@@ -1,0 +1,61 @@
+/*
+ * Copyright 2021 Anton Sviridov
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package wrenchez
+
+import cats.effect._
+import cats.effect.concurrent.Ref
+import cats.syntax.all._
+import natchez.Kernel
+import natchez.Span
+import natchez.TraceValue
+
+import java.net.URI
+
+class WeaverSpan[F[_]: Sync](
+    private val id: Long,
+    // name: String,
+    mt: Monotonic[F],
+    rf: Ref[F, Map[String, TraceValue]],
+    parent: RefTree[F, Long, String]
+) extends Span[F] {
+  override def put(fields: (String, TraceValue)*): F[Unit] =
+    rf.update(_ ++ fields)
+
+  override def kernel: F[Kernel] = Kernel(Map.empty).pure[F]
+
+  override def span(name: String): Resource[F, Span[F]] =
+    Resource.liftF {
+      for {
+        newId     <- mt.id
+        newparent <- parent.nest(newId, Some(name))
+        paramsRef <- Ref.of[F, Map[String, TraceValue]](Map.empty)
+        span = new WeaverSpan[F](
+          newId,
+          // name,
+          mt,
+          paramsRef,
+          newparent
+        )
+      } yield span
+    }
+
+  override def spanId: F[Option[String]] = Option.empty.pure[F]
+
+  override def traceId: F[Option[String]] = Option.empty.pure[F]
+
+  override def traceUri: F[Option[URI]] = Option.empty.pure[F]
+}
