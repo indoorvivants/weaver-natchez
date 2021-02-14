@@ -1,28 +1,30 @@
-lazy val root = project.in(file("."))
-  .aggregate(core.projectRefs:_*)
+import Build._
+
+lazy val root = project
+  .in(file("."))
+  .aggregate(core.projectRefs: _*)
   .aggregate(docs)
   .settings(
     skip in publish := true
   )
 
-lazy val V = new {
-  val weaver  = "0.6.0-M6"
-  val cats    = "2.3.1"
-  val natchez = "0.0.19"
-}
-
 lazy val core = projectMatrix
   .in(file("modules/core"))
-  .jvmPlatform(scalaVersions = Seq("2.12.13", "2.13.4", "3.0.0-M3"))
+  .defaultAxes(VirtualAxis.jvm, CatsEffect2Axis, VirtualAxis.scalaABIVersion("2.13"))
   .settings(
     name := "wrenchez-core",
-    libraryDependencies += "org.typelevel"       %% "cats-core"        % V.cats,
-    libraryDependencies += "org.typelevel"       %% "cats-effect"      % V.cats,
-    libraryDependencies += "org.tpolecat"        %% "natchez-core"     % V.natchez,
-    libraryDependencies += "com.disneystreaming" %% "weaver-cats"      % V.weaver % Test,
-    libraryDependencies += "com.disneystreaming" %% "weaver-cats-core" % V.weaver,
-    libraryDependencies += "com.disneystreaming" %% "weaver-core"      % V.weaver,
     testFrameworks += new TestFramework("weaver.framework.CatsEffect")
+  )
+  .customRow(
+    scalaVersions = scalas,
+    axisValues = Seq(VirtualAxis.jvm, CatsEffect2Axis),
+    process = _.settings(dependencies(CE2_Versions))
+  )
+  .customRow(
+    scalaVersions = scalas,
+    axisValues = Seq(VirtualAxis.jvm, CatsEffect3Axis),
+    process =
+      _.settings(dependencies(CE3_Versions)).settings(versionOverrideForCE3)
   )
   .settings(buildSettings)
 
@@ -39,7 +41,11 @@ lazy val docs = project
       (baseDirectory in ThisBuild).value / "docs" / "pages"
     ),
     unmanagedSourceDirectories in Compile +=
-      (baseDirectory in ThisBuild).value / "docs"
+      (baseDirectory in ThisBuild).value / "docs",
+    subatomicMdocVariables := Map(
+      "CE2_VERSION" -> (core.finder(CatsEffect2Axis)(true) / version).value,
+      "CE3_VERSION" -> (core.finder(CatsEffect3Axis)(true) / version).value
+    )
   )
 
 // ---------- CONFIG

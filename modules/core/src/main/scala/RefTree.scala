@@ -17,7 +17,7 @@
 package wrenchez
 
 import cats.effect._
-import cats.effect.concurrent._
+import cats.effect.compat.all._
 import cats.syntax.all._
 
 case class RefTree[F[_]: Sync, K, V](
@@ -27,7 +27,7 @@ case class RefTree[F[_]: Sync, K, V](
   def nest(k: K, lab: Option[V]): F[RefTree[F, K, V]] = for {
 
     childrenRef <- RefTree.childrenRef[F, K, V]
-    newTree     <- Ref.of[F, RefTree[F, K, V]](RefTree(lab, childrenRef))
+    newTree     <- createRef[F, RefTree[F, K, V]](RefTree(lab, childrenRef))
     _           <- children.updateAndGet(_.updated(k, newTree))
     res         <- newTree.get
   } yield res
@@ -53,7 +53,7 @@ case class RefTree[F[_]: Sync, K, V](
 object RefTree {
   private type Children[F[_], K, V] = Map[K, Ref[F, RefTree[F, K, V]]]
   def childrenRef[F[_]: Sync, K, V]: F[Ref[F, Children[F, K, V]]] = {
-    Ref.of[F, Children[F, K, V]](Map.empty)
+    createRef[F, Children[F, K, V]](Map.empty)
   }
 
   def empty[F[_]: Sync, K, V]: F[RefTree[F, K, V]] = childrenRef.map {

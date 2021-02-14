@@ -17,7 +17,7 @@
 package wrenchez
 
 import cats.effect._
-import cats.effect.concurrent.Ref
+import cats.effect.compat.all._
 import cats.syntax.all._
 import natchez.Kernel
 import natchez.Span
@@ -27,7 +27,6 @@ import java.net.URI
 
 class WeaverSpan[F[_]: Sync](
     private val id: Long,
-    // name: String,
     mt: Monotonic[F],
     rf: Ref[F, Map[String, TraceValue]],
     parent: RefTree[F, Long, String]
@@ -38,14 +37,13 @@ class WeaverSpan[F[_]: Sync](
   override def kernel: F[Kernel] = Kernel(Map.empty).pure[F]
 
   override def span(name: String): Resource[F, Span[F]] =
-    Resource.liftF {
+    liftResource {
       for {
         newId     <- mt.id
         newparent <- parent.nest(newId, Some(name))
-        paramsRef <- Ref.of[F, Map[String, TraceValue]](Map.empty)
+        paramsRef <- createRef[F, Map[String, TraceValue]](Map.empty)
         span = new WeaverSpan[F](
           newId,
-          // name,
           mt,
           paramsRef,
           newparent

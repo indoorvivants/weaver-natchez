@@ -14,21 +14,16 @@
  * limitations under the License.
  */
 
-package wrenchez
+package cats.effect.compat
 
-import cats.effect.Sync
-import cats.effect.compat.all._
-import cats.syntax.all._
+object all {
+  type Ref[F[_], A] = cats.effect.concurrent.Ref[F, A]
 
-private[wrenchez] trait Monotonic[F[_]] {
-  def id: F[Long]
-}
+  def createRef[F[_]: cats.effect.Sync, A](init: A): F[Ref[F, A]] =
+    cats.effect.concurrent.Ref.of[F, A](init)
 
-private[wrenchez] object Monotonic {
-  def refBased[F[_]: Sync]: F[Monotonic[F]] =
-    createRef[F, Long](0L).map { ref =>
-      new Monotonic[F] {
-        def id: F[Long] = ref.updateAndGet(_ + 1)
-      }
-    }
+  def liftResource[F[_]: cats.Applicative, A](
+      fa: F[A]
+  ): cats.effect.Resource[F, A] =
+    cats.effect.Resource.liftF(fa)
 }

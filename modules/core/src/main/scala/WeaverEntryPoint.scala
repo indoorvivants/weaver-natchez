@@ -17,7 +17,7 @@
 package wrenchez
 
 import cats.effect._
-import cats.effect.concurrent.Ref
+import cats.effect.compat.all._
 import cats.syntax.all._
 import natchez.EntryPoint
 import natchez.Kernel
@@ -26,11 +26,11 @@ import natchez.TraceValue
 
 class WeaverEntryPoint[F[_]: Sync](base: RefTree[F, Long, String])
     extends EntryPoint[F] {
-  override def root(name: String): Resource[F, Span[F]] = Resource.liftF {
+  override def root(name: String): Resource[F, Span[F]] = liftResource {
     for {
       mt     <- Monotonic.refBased
       rootId <- mt.id
-      params <- Ref.of[F, Map[String, TraceValue]](Map.empty)
+      params <- createRef[F, Map[String, TraceValue]](Map.empty)
     } yield new WeaverSpan[F](rootId, mt, params, base)
   }
 
