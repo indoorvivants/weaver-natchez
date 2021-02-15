@@ -25,14 +25,24 @@ import natchez.TraceValue
 
 import java.net.URI
 
+object WeaverSpan {
+  case class SpanState[F[_]](
+      name: String,
+      params: Ref[F, Map[String, natchez.TraceValue]]
+  )
+}
+
+import WeaverSpan._
+
 class WeaverSpan[F[_]: Sync](
     private val id: Long,
     mt: Monotonic[F],
     rf: Ref[F, Map[String, TraceValue]],
-    parent: RefTree[F, Long, String]
+    private[wrenchez] val parent: RefTree[F, Long, SpanState[F]]
 ) extends Span[F] {
-  override def put(fields: (String, TraceValue)*): F[Unit] =
+  override def put(fields: (String, TraceValue)*): F[Unit] = {
     rf.update(_ ++ fields)
+  }
 
   override def kernel: F[Kernel] = Kernel(Map.empty).pure[F]
 
@@ -40,8 +50,23 @@ class WeaverSpan[F[_]: Sync](
     liftResource {
       for {
         newId     <- mt.id
-        newparent <- parent.nest(newId, Some(name))
         paramsRef <- createRef[F, Map[String, TraceValue]](Map.empty)
+        newparent <- parent.nest(newId, SpanState(name, paramsRef))
+        span = new WeaverSpan[F](
+          newId,
+          mt,
+          paramsRef,
+          newparent
+        )
+      } yield span
+    }
+
+  def span_(name: String): Resource[F, WeaverSpan[F]] =
+    liftResource {
+      for {
+        newId     <- mt.id
+        paramsRef <- createRef[F, Map[String, TraceValue]](Map.empty)
+        newparent <- parent.nest(newId, SpanState(name, paramsRef))
         span = new WeaverSpan[F](
           newId,
           mt,

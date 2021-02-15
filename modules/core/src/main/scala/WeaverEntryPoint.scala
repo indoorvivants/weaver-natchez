@@ -24,9 +24,18 @@ import natchez.Kernel
 import natchez.Span
 import natchez.TraceValue
 
-class WeaverEntryPoint[F[_]: Sync](base: RefTree[F, Long, String])
-    extends EntryPoint[F] {
+class WeaverEntryPoint[F[_]: Sync](
+    base: RefTree[F, Long, WeaverSpan.SpanState[F]]
+) extends EntryPoint[F] {
   override def root(name: String): Resource[F, Span[F]] = liftResource {
+    for {
+      mt     <- Monotonic.refBased
+      rootId <- mt.id
+      params <- createRef[F, Map[String, TraceValue]](Map.empty)
+    } yield new WeaverSpan[F](rootId, mt, params, base)
+  }
+
+  def newRoot: Resource[F, WeaverSpan[F]] = liftResource {
     for {
       mt     <- Monotonic.refBased
       rootId <- mt.id
@@ -46,7 +55,7 @@ class WeaverEntryPoint[F[_]: Sync](base: RefTree[F, Long, String])
 
 object WeaverEntryPoint {
   def create[F[_]: Sync] =
-    RefTree.empty[F, Long, String].map { ref =>
+    RefTree.empty[F, Long, WeaverSpan.SpanState[F]].map { ref =>
       new WeaverEntryPoint[F](ref) -> ref
     }
 }

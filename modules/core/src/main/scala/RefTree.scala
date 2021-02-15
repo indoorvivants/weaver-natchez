@@ -20,9 +20,11 @@ import cats.effect._
 import cats.effect.compat.all._
 import cats.syntax.all._
 
-case class RefTree[F[_]: Sync, K, V](
+import scala.collection.immutable.SortedMap
+
+case class RefTree[F[_]: Sync, K: Ordering, V](
     label: Option[V],
-    children: Ref[F, Map[K, Ref[F, RefTree[F, K, V]]]]
+    children: Ref[F, SortedMap[K, Ref[F, RefTree[F, K, V]]]]
 ) {
   def nest(k: K, lab: Option[V]): F[RefTree[F, K, V]] = for {
 
@@ -51,12 +53,12 @@ case class RefTree[F[_]: Sync, K, V](
 }
 
 object RefTree {
-  private type Children[F[_], K, V] = Map[K, Ref[F, RefTree[F, K, V]]]
-  def childrenRef[F[_]: Sync, K, V]: F[Ref[F, Children[F, K, V]]] = {
-    createRef[F, Children[F, K, V]](Map.empty)
+  private type Children[F[_], K, V] = SortedMap[K, Ref[F, RefTree[F, K, V]]]
+  def childrenRef[F[_]: Sync, K: Ordering, V]: F[Ref[F, Children[F, K, V]]] = {
+    createRef[F, Children[F, K, V]](SortedMap.empty)
   }
 
-  def empty[F[_]: Sync, K, V]: F[RefTree[F, K, V]] = childrenRef.map {
+  def empty[F[_]: Sync, K: Ordering, V]: F[RefTree[F, K, V]] = childrenRef.map {
     (rf: Ref[F, Children[F, K, V]]) =>
       RefTree(None, rf)
   }

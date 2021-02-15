@@ -20,11 +20,11 @@ import cats.effect.Sync
 import cats.effect.compat.all._
 import cats.syntax.all._
 
-private[wrenchez] trait Monotonic[F[_]] {
+trait Monotonic[F[_]] {
   def id: F[Long]
 }
 
-private[wrenchez] object Monotonic {
+object Monotonic {
   def refBased[F[_]: Sync]: F[Monotonic[F]] =
     createRef[F, Long](0L).map { ref =>
       new Monotonic[F] {

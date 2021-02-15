@@ -10,7 +10,11 @@ lazy val root = project
 
 lazy val core = projectMatrix
   .in(file("modules/core"))
-  .defaultAxes(VirtualAxis.jvm, CatsEffect2Axis, VirtualAxis.scalaABIVersion("2.13"))
+  .defaultAxes(
+    VirtualAxis.jvm,
+    CatsEffect2Axis,
+    VirtualAxis.scalaABIVersion("2.13")
+  )
   .settings(
     name := "wrenchez-core",
     testFrameworks += new TestFramework("weaver.framework.CatsEffect")
@@ -27,6 +31,15 @@ lazy val core = projectMatrix
       _.settings(dependencies(CE3_Versions)).settings(versionOverrideForCE3)
   )
   .settings(buildSettings)
+
+lazy val examples = project
+  .in(file("modules/examples"))
+  .dependsOn(core.finder(CatsEffect2Axis)(true))
+  .settings(
+    libraryDependencies += "org.tpolecat"        %% "skunk-core"  % "0.0.23",
+    libraryDependencies += "com.disneystreaming" %% "weaver-cats" % CE2_Versions.weaver,
+    testFrameworks += new TestFramework("weaver.framework.CatsEffect")
+  )
 
 lazy val docs = project
   .in(file("docs"))

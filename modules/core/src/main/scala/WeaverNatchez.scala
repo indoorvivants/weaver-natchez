@@ -17,7 +17,37 @@
 package wrenchez
 
 import cats.effect.IO
-import natchez.Span
+import natchez.TraceValue._
+import natchez._
+import weaver._
+
+class Tracer(rootSpan: WeaverSpan[IO]) {
+  def apply(log: weaver.Log[IO])(exp: IO[Expectations]): IO[Expectations] = {
+    // rootSpan.span_(java.util.UUID.randomUUID().toString).use { _ =>
+    exp.guarantee(
+      rootSpan.parent.traverse { (level, _, v) =>
+        v match {
+          case None => IO.unit
+          case Some(WeaverSpan.SpanState(name, paramsRef)) =>
+            paramsRef.get.flatMap { params =>
+              log.debug(
+                Console.GREEN + ("." * level) + Console.RESET + Console.YELLOW + s" [$name]" + Console.RESET,
+                params.map {
+                  case (k, StringValue(str)) =>
+                    k -> str
+                  //.replace("\n", Console.BLUE + "\\n" + Console.RESET)
+                  case (k, BooleanValue(b)) => k -> b.toString
+                  case (k, NumberValue(n))  => k -> n.toString
+                }
+              )
+
+            }
+        }
+      }
+    )
+    // }
+  }
+}
 
 trait WeaverNatchez { self: weaver.IOSuite =>
 
@@ -38,4 +68,15 @@ trait WeaverNatchez { self: weaver.IOSuite =>
     }
   }
 
+}
+
+object WeaverNatches {
+  def dump[F[_], K, V](log: Log[F], rt: RefTree[F, K, V]) = {
+    rt
+      .traverse { (level, _, v) =>
+        log.debug(
+          Console.GREEN + ("." * level) + Console.RESET + s" [${v.getOrElse("<unnamed>")}]"
+        )
+      }
+  }
 }
