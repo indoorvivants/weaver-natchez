@@ -25,5 +25,5 @@ object all {
   def liftResource[F[_]: cats.Applicative, A](
       fa: F[A]
   ): cats.effect.Resource[F, A] =
-    cats.effect.Resource.liftF(fa)
+    cats.effect.Resource.eval(fa)
 }

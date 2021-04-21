@@ -36,15 +36,15 @@ lazy val examples = project
   .in(file("modules/examples"))
   .dependsOn(core.finder(CatsEffect2Axis)(true))
   .settings(
-    libraryDependencies += "org.tpolecat"        %% "skunk-core"  % "0.0.23",
+    libraryDependencies += "org.tpolecat"        %% "skunk-core"  % "0.0.25",
     libraryDependencies += "com.disneystreaming" %% "weaver-cats" % CE2_Versions.weaver,
     testFrameworks += new TestFramework("weaver.framework.CatsEffect")
   )
 
 lazy val docs = project
   .in(file("docs"))
-  .settings(scalaVersion := "2.13.4")
-  .dependsOn(core.jvm("2.13.4"))
+  .settings(scalaVersion := scala213)
+  .dependsOn(core.jvm(scala213))
   .enablePlugins(SubatomicPlugin)
   .settings(
     unusedCompileDependenciesTest := {},

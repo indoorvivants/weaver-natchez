@@ -8,7 +8,9 @@ object Build {
   val CatsEffect2Axis = CatsEffectAxis("_CE2", "-ce2")
   val CatsEffect3Axis = CatsEffectAxis("_CE3", "-ce3")
 
-  val scalas = Seq("2.12.13", "2.13.4", "3.0.0-M3")
+  val scala213 = "2.13.5"
+
+  val scalas = Seq("2.12.13", scala213, "3.0.0-RC2")
 
   trait Versions {
     val weaver: String
@@ -17,19 +19,21 @@ object Build {
   }
 
   val CE2_Versions = new Versions {
-    val weaver     = "0.6.0-M6"
-    val catsEffect = "2.3.1"
-    val natchez    = "0.0.19"
+    val weaver     = "0.6.1"
+    val catsEffect = "2.5.0"
+    val natchez    = "0.0.22"
   }
 
   val CE3_Versions = new Versions {
-    val weaver     = "0.7.0-M6"
-    val catsEffect = "3.0.0-M5"
-    val natchez    = "0.1.0-M3"
+    val weaver     = "0.7.1"
+    val catsEffect = "3.1.0"
+    val natchez    = "0.1.0"
   }
 
+  val cats = "2.6.0"
+
   def dependencies(V: Versions) = Seq(
-    libraryDependencies += "org.typelevel" %% "cats-core"   % "2.4.1",
+    libraryDependencies += "org.typelevel" %% "cats-core"   % cats,
     libraryDependencies += "org.typelevel" %% "cats-effect" % V.catsEffect,
     libraryDependencies ++= {
       if (V.catsEffect.startsWith("3"))
@@ -45,8 +49,6 @@ object Build {
   def increaseVersion(original: String): String = {
 
     val regex = "^(\\d+).(\\d+).(\\d+).*$".r
-
-    // val original = version.value
 
     original match {
       case regex(major, minor, patch) =>
