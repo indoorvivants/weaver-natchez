@@ -1,6 +1,6 @@
 ---
 title: Home
-scala-mdoc: true
+mdoc: true
 ---
 
 **this library is considered to be so raw it's almost dangerous to use it**
